@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive API explorer for ShunKazama API">
+    <meta name="theme-color" content="#0B0E14">
+    <title>ShunKazama API</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['Space Grotesk', '-apple-system', 'Segoe UI', 'Roboto', 'system-ui', 'sans-serif'],
+                        'sans': ['Inter', '-apple-system', 'Segoe UI', 'Roboto', 'system-ui', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'ui-monospace', 'SF Mono', 'Consolas', 'Roboto Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* ── Theme tokens. Dark is the native habitat; light is a faithful daylight port. ── */
+        :root.dark {
+            --base: #0B0E14; --surface: #11151D; --surface-2: #131826;
+            --line: #1E2330; --line-2: #2A3142;
+            --ink: #E4E7EC; --ink-dim: #8C94A6; --ink-faint: #5C6478;
+            --accent: #7C8CFF; --accent-soft: #9AA6FF;
+            --ok: #3DD68C; --warn: #F0B53D; --bad: #F2545B;
+            --glow-1: rgba(124, 140, 255, 0.10); --glow-2: rgba(61, 214, 140, 0.06);
+            /* JSON syntax colors */
+            --j-key: #9AA6FF; --j-str: #3DD68C; --j-num: #F0B53D; --j-bool: #F2545B; --j-null: #8C94A6;
+        }
+        :root.light {
+            --base: #F7F8FA; --surface: #FFFFFF; --surface-2: #F0F2F6;
+            --line: #E3E6EC; --line-2: #D0D5DE;
+            --ink: #1A1D24; --ink-dim: #555C6B; --ink-faint: #8A93A3;
+            --accent: #4F5DD6; --accent-soft: #5C6BE0;
+            --ok: #1B9E63; --warn: #C2860F; --bad: #D63A41;
+            --glow-1: rgba(79, 93, 214, 0.07); --glow-2: rgba(27, 158, 99, 0.05);
+            --j-key: #4F5DD6; --j-str: #1B9E63; --j-num: #B5740C; --j-bool: #D63A41; --j-null: #8A93A3;
+        }
+
+        ::-webkit-scrollbar { width: 0; height: 0; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            background-color: var(--base);
+            color: var(--ink);
+            background-image:
+                radial-gradient(ellipse 900px 500px at 15% -10%, var(--glow-1), transparent),
+                radial-gradient(ellipse 700px 500px at 100% 0%, var(--glow-2), transparent);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Utility color classes mapped to tokens */
+        .text-ink { color: var(--ink); }
+        .text-ink-dim { color: var(--ink-dim); }
+        .text-ink-faint { color: var(--ink-faint); }
+        .text-accent { color: var(--accent); }
+        .text-ok { color: var(--ok); } .text-warn { color: var(--warn); } .text-bad { color: var(--bad); }
+        .border-base-line { border-color: var(--line); }
+        .bg-surface { background: var(--surface); }
+
+        .text-link { color: var(--accent-soft); text-decoration: none; }
+        .text-link:hover { text-decoration: underline; }
+
+        /* Blinking terminal cursor — the page's signature element */
+        .cursor-blink {
+            display: inline-block; width: 0.5em; background: var(--accent);
+            animation: blink 1.1s steps(1) infinite; margin-left: 0.08em;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) { .cursor-blink { animation: none; opacity: 1; } }
+
+        .slide-down { animation: slideDown 0.15s ease-out; }
+        .slide-up { animation: slideUp 0.15s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-6px); } }
+
+        .method-tag {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 700;
+            letter-spacing: 0.02em; padding: 0.2rem 0.45rem; border-radius: 4px; line-height: 1.4;
+        }
+        .method-get    { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 38%, transparent); }
+        .method-post   { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 42%, transparent); }
+        .method-put    { background: color-mix(in srgb, var(--warn) 14%, transparent); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 38%, transparent); }
+        .method-delete { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); border: 1px solid color-mix(in srgb, var(--bad) 38%, transparent); }
+
+        .endpoint-row {
+            background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+        .endpoint-row:hover { border-color: var(--line-2); background: var(--surface-2); }
+
+        .field-input {
+            background: var(--base); border: 1px solid var(--line); color: var(--ink);
+            border-radius: 6px; transition: border-color 0.15s ease;
+        }
+        .field-input::placeholder { color: var(--ink-faint); }
+        .field-input:focus { outline: none; border-color: var(--accent); }
+
+        .btn-run {
+            background: var(--accent); color: #fff; border-radius: 6px; font-weight: 600;
+            transition: filter 0.15s ease, transform 0.05s ease;
+        }
+        .btn-run:hover { filter: brightness(1.08); }
+        .btn-run:active { transform: translateY(1px); }
+        .btn-run:disabled { opacity: 0.55; cursor: not-allowed; }
+
+        .btn-ghost {
+            background: transparent; color: var(--ink-dim); border: 1px solid var(--line);
+            border-radius: 6px; transition: border-color 0.15s ease, color 0.15s ease;
+        }
+        .btn-ghost:hover { border-color: var(--line-2); color: var(--ink); }
+
+        .response-pane { background: var(--base); border: 1px solid var(--line); border-radius: 6px; }
+
+        .stat-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+
+        .chip {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+            background: var(--surface-2); border: 1px solid var(--line);
+            color: var(--ink-dim); padding: 0.15rem 0.5rem; border-radius: 999px;
+        }
+
+        /* JSON syntax highlight */
+        .tok-key { color: var(--j-key); }
+        .tok-str { color: var(--j-str); }
+        .tok-num { color: var(--j-num); }
+        .tok-bool { color: var(--j-bool); }
+        .tok-null { color: var(--j-null); }
+
+        .copy-btn {
+            display: inline-flex; align-items: center; gap: 0.25rem;
+            font-size: 0.68rem; color: var(--ink-faint); cursor: pointer;
+            transition: color 0.15s ease;
+        }
+        .copy-btn:hover { color: var(--ink); }
+
+        /* Live status dot */
+        .pulse-dot { position: relative; }
+        .pulse-dot::after {
+            content: ''; position: absolute; inset: -3px; border-radius: 999px;
+            border: 1px solid currentColor; opacity: 0.5;
+            animation: pulse 1.8s ease-out infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(0.9); opacity: 0.6; } 100% { transform: scale(1.8); opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) { .pulse-dot::after { animation: none; } }
+
+        .seg-btn { color: var(--ink-faint); transition: color 0.15s, background 0.15s; }
+        .seg-btn[aria-pressed="true"] { color: var(--ink); background: var(--surface-2); }
+    </style>
+</head>
+<body class="font-sans antialiased min-h-screen">
+    <main class="max-w-3xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+
+        <!-- ── Header ── -->
+        <div class="mb-8">
+            <div class="flex items-start justify-between gap-4 mb-2">
+                <h1 class="text-2xl sm:text-3xl font-display font-semibold text-ink flex items-baseline">
+                    <span id="title">ShunKazama API</span><span class="cursor-blink h-5 sm:h-6 translate-y-0.5"></span>
+                </h1>
+                <!-- Theme toggle + live status -->
+                <div class="flex items-center gap-3 shrink-0 pt-1">
+                    <span id="serverStatus" class="flex items-center gap-1.5 text-xs text-ink-faint" title="Checking server…">
+                        <span id="statusDot" class="pulse-dot inline-block w-2 h-2 rounded-full text-ink-faint" style="background: currentColor;"></span>
+                        <span id="statusText" class="font-mono">checking</span>
+                    </span>
+                    <button id="themeToggle" class="btn-ghost w-9 h-9 flex items-center justify-center" title="Toggle theme" aria-label="Toggle light or dark theme">
+                        <span class="material-icons text-lg" id="themeIcon">light_mode</span>
+                    </button>
+                </div>
+            </div>
+            <p class="text-ink-dim text-sm leading-relaxed max-w-xl mb-5">
+                <span id="description">Interactive API explorer. Try any endpoint live, copy as cURL, and inspect responses.</span>
+            </p>
+            <div class="flex flex-wrap gap-x-5 gap-y-1 mb-6 text-xs font-medium">
+                <a href="/docs" class="text-link">Swagger UI Docs →</a>
+                <a href="/openapi.json" class="text-link">OpenAPI Spec →</a>
+                <a href="https://whatsapp.com/channel/0029Vb66StiJkK78H53UEO0a" class="text-link">WhatsApp Channel →</a>
+            </div>
+        </div>
+
+        <!-- ── Stats dashboard ── -->
+        <div id="statsGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            <div class="stat-card px-4 py-3">
+                <div class="text-2xl font-display font-semibold text-ink" id="statEndpoints">—</div>
+                <div class="text-xs text-ink-faint mt-0.5">Endpoints</div>
+            </div>
+            <div class="stat-card px-4 py-3">
+                <div class="text-2xl font-display font-semibold text-ink" id="statCategories">—</div>
+                <div class="text-xs text-ink-faint mt-0.5">Categories</div>
+            </div>
+            <div class="stat-card px-4 py-3">
+                <div class="text-2xl font-display font-semibold text-ink" id="statMethods">—</div>
+                <div class="text-xs text-ink-faint mt-0.5">HTTP methods</div>
+            </div>
+            <div class="stat-card px-4 py-3">
+                <div class="text-2xl font-display font-semibold text-ok" id="statUptime">—</div>
+                <div class="text-xs text-ink-faint mt-0.5">Uptime</div>
+            </div>
+        </div>
+
+        <!-- ── Config row: server + API key ── -->
+        <div class="grid sm:grid-cols-2 gap-4 mb-6">
+            <div>
+                <label class="block text-xs font-medium text-ink-faint uppercase tracking-wide mb-2" for="hostSelect">Server</label>
+                <select id="hostSelect" class="field-input w-full px-4 py-3 text-sm font-mono appearance-none">
+                    <option id="valueURL" value="" selected></option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-ink-faint uppercase tracking-wide mb-2" for="apiKeyInput">
+                    API key <span class="text-ink-faint normal-case tracking-normal">— sent as x-api-key, saved locally</span>
+                </label>
+                <div class="relative">
+                    <input type="password" id="apiKeyInput" placeholder="sk_…" autocomplete="off"
+                           class="field-input w-full px-4 py-3 text-sm font-mono pr-10">
+                    <button id="apiKeyReveal" type="button" title="Show / hide key"
+                            class="absolute inset-y-0 right-0 pr-3 flex items-center text-ink-faint hover:text-ink">
+                        <span class="material-icons text-lg" id="apiKeyRevealIcon">visibility</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Search ── -->
+        <div class="mb-8">
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span class="material-icons text-ink-faint text-lg">search</span>
+                </div>
+                <input type="text" id="searchInput" placeholder="Search endpoints, methods, categories…   (press /)"
+                       class="field-input w-full pl-11 pr-4 py-3.5 text-sm">
+            </div>
+        </div>
+
+        <!-- ── Recent requests ── -->
+        <div id="historyWrap" class="mb-8 hidden">
+            <div class="flex items-center justify-between mb-2">
+                <h2 class="text-xs font-medium text-ink-faint uppercase tracking-wide flex items-center">
+                    <span class="material-icons text-sm mr-1.5">history</span> Recent requests
+                </h2>
+                <button id="clearHistory" class="copy-btn"><span class="material-icons text-sm">delete_sweep</span> Clear</button>
+            </div>
+            <div id="historyList" class="space-y-1.5"></div>
+        </div>
+
+        <!-- ── Endpoint list ── -->
+        <div id="content">
+            <div id="loadingState" class="text-center py-16">
+                <p class="text-sm text-ink-dim font-mono">Loading endpoints<span class="cursor-blink h-3.5"></span></p>
+            </div>
+            <div id="noResults" class="text-center py-16" style="display: none;">
+                <div class="max-w-md mx-auto">
+                    <h3 class="text-sm text-ink mb-1 font-medium">No endpoints match that search.</h3>
+                    <p class="text-xs text-ink-faint">Try a different method, path, or category name.</p>
+                </div>
+            </div>
+            <div id="apiList" class="space-y-4"></div>
+        </div>
+
+        <div class="flex flex-col mt-14 text-center space-y-2 border-t border-base-line pt-8">
+          <p class="text-ink-faint text-xs font-mono">
+            © <span id="year"></span> ShunKazama API — All Rights Reserved.
+          </p>
+        </div>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 translate-y-3 opacity-0 pointer-events-none transition-all duration-200 z-50">
+        <div class="endpoint-row px-4 py-2.5 text-sm text-ink flex items-center gap-2 shadow-lg">
+            <span class="material-icons text-base text-ok" id="toastIcon">check_circle</span>
+            <span id="toastMsg">Copied</span>
+        </div>
+    </div>
+
+    <script>
+      // ─────────────────────────────────────────────────────────────────────
+      //  State
+      // ─────────────────────────────────────────────────────────────────────
+      const LS = {
+        theme: 'shun.theme',
+        apiKey: 'shun.apikey',
+        history: 'shun.history',
+      };
+      let endpointsFlat = []; // {category, name, route, methods, description, params, paramsSchema}
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Theme
+      // ─────────────────────────────────────────────────────────────────────
+      function applyTheme(theme) {
+        const root = document.documentElement;
+        root.classList.remove('dark', 'light');
+        root.classList.add(theme);
+        document.getElementById('themeIcon').textContent = theme === 'dark' ? 'light_mode' : 'dark_mode';
+        document.querySelector('meta[name=theme-color]').setAttribute('content', theme === 'dark' ? '#0B0E14' : '#F7F8FA');
+      }
+      function initTheme() {
+        const saved = localStorage.getItem(LS.theme);
+        const theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        applyTheme(theme);
+        document.getElementById('themeToggle').addEventListener('click', () => {
+          const next = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+          applyTheme(next);
+          localStorage.setItem(LS.theme, next);
+        });
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  API key persistence
+      // ─────────────────────────────────────────────────────────────────────
+      function initApiKey() {
+        const input = document.getElementById('apiKeyInput');
+        input.value = localStorage.getItem(LS.apiKey) || '';
+        input.addEventListener('input', () => localStorage.setItem(LS.apiKey, input.value.trim()));
+        document.getElementById('apiKeyReveal').addEventListener('click', () => {
+          const icon = document.getElementById('apiKeyRevealIcon');
+          if (input.type === 'password') { input.type = 'text'; icon.textContent = 'visibility_off'; }
+          else { input.type = 'password'; icon.textContent = 'visibility'; }
+        });
+      }
+      function getApiKey() { return (document.getElementById('apiKeyInput').value || '').trim(); }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Toast + clipboard
+      // ─────────────────────────────────────────────────────────────────────
+      let toastTimer;
+      function toast(msg, ok = true) {
+        const t = document.getElementById('toast');
+        document.getElementById('toastMsg').textContent = msg;
+        const icon = document.getElementById('toastIcon');
+        icon.textContent = ok ? 'check_circle' : 'error';
+        icon.style.color = ok ? 'var(--ok)' : 'var(--bad)';
+        t.style.opacity = '1'; t.style.transform = 'translate(-50%, 0)'; t.style.pointerEvents = 'auto';
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          t.style.opacity = '0'; t.style.transform = 'translate(-50%, 12px)'; t.style.pointerEvents = 'none';
+        }, 1800);
+      }
+      async function copyText(text, label = 'Copied') {
+        try { await navigator.clipboard.writeText(text); toast(label); }
+        catch { toast('Copy failed', false); }
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  JSON syntax highlight (escapes first, then colorizes tokens)
+      // ─────────────────────────────────────────────────────────────────────
+      function escapeHtml(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+      function highlightJson(obj) {
+        let json;
+        try { json = JSON.stringify(obj, null, 2); } catch { return escapeHtml(String(obj)); }
+        json = escapeHtml(json);
+        return json.replace(
+          /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false)\b|\bnull\b|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g,
+          (match) => {
+            let cls = 'tok-num';
+            if (/^"/.test(match)) cls = /:$/.test(match) ? 'tok-key' : 'tok-str';
+            else if (/true|false/.test(match)) cls = 'tok-bool';
+            else if (/null/.test(match)) cls = 'tok-null';
+            return `<span class="${cls}">${match}</span>`;
+          }
+        );
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  cURL builder
+      // ─────────────────────────────────────────────────────────────────────
+      function buildCurl(method, url, bodyObj, apiKey) {
+        const parts = [`curl -X ${method} "${url}"`];
+        if (apiKey) parts.push(`  -H "x-api-key: ${apiKey}"`);
+        if (bodyObj && Object.keys(bodyObj).length && method !== 'GET') {
+          parts.push(`  -H "Content-Type: application/json"`);
+          parts.push(`  -d '${JSON.stringify(bodyObj)}'`);
+        }
+        return parts.join(' \\\n');
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Request history (localStorage, capped at 15)
+      // ─────────────────────────────────────────────────────────────────────
+      function loadHistory() { try { return JSON.parse(localStorage.getItem(LS.history) || '[]'); } catch { return []; } }
+      function saveHistory(list) { localStorage.setItem(LS.history, JSON.stringify(list.slice(0, 15))); }
+      function pushHistory(entry) {
+        const list = loadHistory();
+        list.unshift(entry);
+        saveHistory(list);
+        renderHistory();
+      }
+      function renderHistory() {
+        const list = loadHistory();
+        const wrap = document.getElementById('historyWrap');
+        const container = document.getElementById('historyList');
+        if (!list.length) { wrap.classList.add('hidden'); return; }
+        wrap.classList.remove('hidden');
+        container.innerHTML = list.map(h => {
+          const statusColor = h.ok ? 'text-ok' : 'text-bad';
+          const mClass = 'method-' + (h.method || 'GET').toLowerCase();
+          return `<div class="endpoint-row px-3 py-2 flex items-center gap-3 text-xs">
+              <span class="method-tag ${mClass}">${h.method}</span>
+              <span class="font-mono text-ink-dim truncate flex-1" title="${h.path}">${h.path}</span>
+              <span class="font-mono ${statusColor}">${h.status}</span>
+              <span class="font-mono text-ink-faint">${h.ms}ms</span>
+            </div>`;
+        }).join('');
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Server status + uptime (polls /health)
+      // ─────────────────────────────────────────────────────────────────────
+      function fmtUptime(s) {
+        if (s == null) return '—';
+        if (s < 60) return s + 's';
+        if (s < 3600) return Math.floor(s / 60) + 'm';
+        if (s < 86400) return Math.floor(s / 3600) + 'h';
+        return Math.floor(s / 86400) + 'd';
+      }
+      async function pollHealth() {
+        const dot = document.getElementById('statusDot');
+        const text = document.getElementById('statusText');
+        try {
+          const r = await fetch('/health', { cache: 'no-store' });
+          const d = await r.json();
+          const up = r.ok && (d.status === 'ok' || d.statusCode === 200);
+          dot.className = 'pulse-dot inline-block w-2 h-2 rounded-full ' + (up ? 'text-ok' : 'text-bad');
+          text.textContent = up ? 'online' : 'degraded';
+          text.className = 'font-mono ' + (up ? 'text-ok' : 'text-bad');
+          document.getElementById('statUptime').textContent = fmtUptime(d.uptimeSeconds);
+        } catch {
+          dot.className = 'pulse-dot inline-block w-2 h-2 rounded-full text-bad';
+          text.textContent = 'offline';
+          text.className = 'font-mono text-bad';
+          document.getElementById('statUptime').textContent = '—';
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Load + render endpoints
+      // ─────────────────────────────────────────────────────────────────────
+      async function loadApiData() {
+        try {
+          // The custom explorer needs the flat endpoint list shape.
+          const res = await fetch('/openapi.legacy.json', { cache: 'no-store' });
+          const apiData = await res.json();
+
+          const option = document.getElementById('valueURL');
+          option.value = apiData.baseURL;
+          option.textContent = `${apiData.baseURL} — Development Server`;
+          if (apiData.title) document.getElementById('title').textContent = apiData.title;
+          if (apiData.description) document.getElementById('description').textContent = apiData.description;
+
+          endpointsFlat = apiData.endpoints || [];
+
+          // Stats
+          const cats = {};
+          const methodsSet = new Set();
+          endpointsFlat.forEach(ep => {
+            (cats[ep.category] = cats[ep.category] || []).push(ep);
+            (ep.methods || ['GET']).forEach(m => methodsSet.add(m));
+          });
+          document.getElementById('statEndpoints').textContent = endpointsFlat.length;
+          document.getElementById('statCategories').textContent = Object.keys(cats).length;
+          document.getElementById('statMethods').textContent = methodsSet.size;
+
+          // Build endpoint cards
+          const apiList = document.getElementById('apiList');
+          apiList.innerHTML = '';
+          let categoryIndex = 0;
+
+          for (const [categoryName, list] of Object.entries(cats)) {
+            const group = document.createElement('div');
+            group.className = 'category-group';
+            group.setAttribute('data-category', categoryName);
+
+            let content = `
+              <div class="endpoint-row overflow-hidden">
+                <button onclick="toggleCategory(${categoryIndex})" class="w-full px-5 py-4 text-left flex items-center justify-between">
+                  <h2 class="font-display font-semibold flex items-center text-base text-ink min-w-0">
+                    <span class="material-icons text-lg mr-2.5 text-accent shrink-0">folder</span>
+                    <span class="truncate">${categoryName}</span>
+                    <span data-role="category-count" class="ml-3 text-xs text-ink-faint font-mono font-normal shrink-0">${list.length} endpoints</span>
+                  </h2>
+                  <span class="material-icons text-ink-faint transition-transform duration-150 shrink-0" id="category-icon-${categoryIndex}">expand_more</span>
+                </button>
+                <div id="category-${categoryIndex}" class="hidden border-t border-base-line">
+                  <div class="flex flex-col divide-y" style="border-color: var(--line)">`;
+
+            let endpointIndex = 0;
+            list.forEach(endpoint => {
+              const methodBadges = (endpoint.methods || ['GET']).map(method => {
+                const c = 'method-' + method.toLowerCase();
+                return `<span class="method-tag ${c}">${method}</span>`;
+              }).join(' ');
+
+              const primaryMethod = (endpoint.methods || ['GET'])[0];
+              const premiumBadge = endpoint.isPremium
+                ? `<span class="chip" title="Requires a premium API key"><span class="material-icons" style="font-size:0.8rem;vertical-align:-2px">lock</span> premium</span>` : '';
+
+              content += `
+                <div class="api-item p-4 sm:p-5"
+                     data-method="${primaryMethod}" data-path="${endpoint.route}"
+                     data-alias="${endpoint.name}" data-category="${endpoint.category}">
+                  <div class="flex justify-between items-start gap-3 mb-1.5">
+                    <div class="flex flex-wrap gap-1.5 items-center min-w-0">
+                      ${methodBadges}
+                      <h3 class="font-mono text-sm text-ink truncate" title="${endpoint.route}">${endpoint.route}</h3>
+                      ${premiumBadge}
+                    </div>
+                    <button onclick="toggleEndpoint(${categoryIndex}, ${endpointIndex})" class="text-ink-faint hover:text-ink transition-colors shrink-0">
+                      <span class="material-icons text-lg" id="endpoint-icon-${categoryIndex}-${endpointIndex}">expand_more</span>
+                    </button>
+                  </div>
+                  <p class="text-xs text-ink-dim leading-relaxed">${endpoint.description || ''}</p>
+                  <div id="endpoint-${categoryIndex}-${endpointIndex}" class="hidden mt-4 pt-4 border-t border-base-line">
+                    <div class="text-ink-faint font-semibold text-xs mb-3 flex items-center uppercase tracking-wide">
+                      <span class="material-icons text-sm mr-1.5">play_arrow</span> Try it out
+                    </div>
+                    <form id="form-${categoryIndex}-${endpointIndex}"
+                          onsubmit="executeRequest(event, ${categoryIndex}, ${endpointIndex}, '${primaryMethod}', '${endpoint.route}')">
+                      <div class="mb-3 space-y-2.5">`;
+
+              const schema = endpoint.paramsSchema && Object.keys(endpoint.paramsSchema).length ? endpoint.paramsSchema : null;
+              const params = endpoint.params && endpoint.params.length ? endpoint.params : null;
+
+              if (schema) {
+                Object.entries(schema).forEach(([name, rules]) => {
+                  const req = rules.required ? ` <span class="text-bad">*</span>` : '';
+                  if (rules.type === 'file') {
+                    content += `<div><label class="block text-xs font-medium text-ink-dim mb-1">${name}${req}</label><input type="file" name="${name}" class="field-input w-full text-xs p-2"></div>`;
+                  } else {
+                    const ph = rules.type ? `${name} (${rules.type})` : name;
+                    content += `<div><label class="block text-xs font-medium text-ink-dim mb-1">${name}${req}</label><input type="text" name="${name}" class="field-input w-full px-3 py-2 text-xs font-mono" placeholder="${ph}" ${rules.required ? 'required' : ''}></div>`;
+                  }
+                });
+              } else if (params) {
+                params.forEach(name => {
+                  content += `<div><label class="block text-xs font-medium text-ink-dim mb-1">${name}</label><input type="text" name="${name}" class="field-input w-full px-3 py-2 text-xs font-mono" placeholder="${name}"></div>`;
+                });
+              } else {
+                content += `<div class="text-xs text-ink-faint italic">No parameters required for this endpoint.</div>`;
+              }
+
+              content += `
+                      </div>
+                      <div class="flex flex-wrap gap-2 items-center">
+                        <button type="submit" class="btn-run px-4 py-2 text-xs">Execute</button>
+                        <button type="button" onclick="copyCurl(${categoryIndex}, ${endpointIndex}, '${primaryMethod}', '${endpoint.route}')" class="btn-ghost px-3 py-2 text-xs flex items-center gap-1">
+                          <span class="material-icons text-sm">content_copy</span> Copy cURL
+                        </button>
+                        <button type="button" id="clear-${categoryIndex}-${endpointIndex}" onclick="clearResponse(${categoryIndex}, ${endpointIndex})" class="hidden btn-ghost px-3 py-2 text-xs">Clear</button>
+                      </div>
+                    </form>
+                    <div id="response-${categoryIndex}-${endpointIndex}" class="hidden mt-3">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="text-ink-faint font-semibold text-xs flex items-center uppercase tracking-wide">
+                          <span class="material-icons text-sm mr-1.5">code</span> Response
+                        </div>
+                        <div class="flex items-center gap-3">
+                          <span id="resp-meta-${categoryIndex}-${endpointIndex}" class="text-xs font-mono text-ink-faint"></span>
+                          <button type="button" onclick="copyResponse(${categoryIndex}, ${endpointIndex})" class="copy-btn"><span class="material-icons text-sm">content_copy</span> Copy</button>
+                        </div>
+                      </div>
+                      <div class="response-pane text-xs p-3 font-mono">
+                        <div class="max-h-72 overflow-auto" id="response-content-${categoryIndex}-${endpointIndex}"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>`;
+              endpointIndex++;
+            });
+
+            content += `</div></div></div>`;
+            group.innerHTML = content;
+            apiList.appendChild(group);
+            categoryIndex++;
+          }
+
+          document.getElementById('loadingState').style.display = 'none';
+          initSearch();
+        } catch (err) {
+          console.error('Failed to load endpoints:', err);
+          document.getElementById('loadingState').innerHTML =
+            '<p class="text-sm text-bad">Could not load endpoints. Is the server running?</p>';
+        }
+      }
+
+      // Raw response store for copy (per endpoint cell)
+      const lastResponse = {};
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Collapse / expand
+      // ─────────────────────────────────────────────────────────────────────
+      function toggleCategory(i) {
+        const el = document.getElementById(`category-${i}`);
+        const icon = document.getElementById(`category-icon-${i}`);
+        const open = !el.classList.contains('hidden');
+        el.classList.toggle('hidden');
+        icon.style.transform = open ? '' : 'rotate(180deg)';
+      }
+      function toggleEndpoint(c, e) {
+        const el = document.getElementById(`endpoint-${c}-${e}`);
+        const icon = document.getElementById(`endpoint-icon-${c}-${e}`);
+        const open = !el.classList.contains('hidden');
+        el.classList.toggle('hidden');
+        icon.style.transform = open ? '' : 'rotate(180deg)';
+      }
+      function clearResponse(c, e) {
+        const wrap = document.getElementById(`response-${c}-${e}`);
+        const content = document.getElementById(`response-content-${c}-${e}`);
+        wrap.classList.add('slide-up');
+        setTimeout(() => {
+          wrap.classList.add('hidden');
+          wrap.classList.remove('slide-up', 'slide-down');
+          content.innerHTML = '';
+          document.getElementById(`clear-${c}-${e}`).classList.add('hidden');
+        }, 150);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Gather form values
+      // ─────────────────────────────────────────────────────────────────────
+      function gatherForm(form) {
+        const fd = new FormData(form);
+        const obj = {};
+        let hasFile = false;
+        form.querySelectorAll('input[type=file]').forEach(i => { if (i.files.length) hasFile = true; });
+        for (const [k, v] of fd.entries()) { if (v) obj[k] = v; }
+        return { obj, hasFile, fd };
+      }
+
+      function copyCurl(c, e, method, path) {
+        const form = document.getElementById(`form-${c}-${e}`);
+        const host = document.getElementById('hostSelect').value;
+        const { obj } = gatherForm(form);
+        let url = host + path;
+        if (method === 'GET' && Object.keys(obj).length) {
+          url += '?' + new URLSearchParams(obj).toString();
+        }
+        copyText(buildCurl(method, url, method === 'GET' ? null : obj, getApiKey()), 'cURL copied');
+      }
+
+      function copyResponse(c, e) {
+        const data = lastResponse[`${c}-${e}`];
+        if (data == null) return;
+        copyText(typeof data === 'string' ? data : JSON.stringify(data, null, 2), 'Response copied');
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Execute
+      // ─────────────────────────────────────────────────────────────────────
+      async function executeRequest(event, c, e, method, path) {
+        event.preventDefault();
+        const form = event.target;
+        const wrap = document.getElementById(`response-${c}-${e}`);
+        const content = document.getElementById(`response-content-${c}-${e}`);
+        const meta = document.getElementById(`resp-meta-${c}-${e}`);
+        const clearBtn = document.getElementById(`clear-${c}-${e}`);
+        const submitBtn = form.querySelector('button[type=submit]');
+        const host = document.getElementById('hostSelect').value;
+        const apiKey = getApiKey();
+
+        let url = host + path;
+        const { obj, hasFile, fd } = gatherForm(form);
+
+        const config = { method, headers: {} };
+        if (apiKey) config.headers['x-api-key'] = apiKey;
+
+        if (method === 'GET') {
+          if (Object.keys(obj).length) url += '?' + new URLSearchParams(obj).toString();
+        } else if (hasFile) {
+          config.body = fd; // browser sets multipart boundary
+        } else if (Object.keys(obj).length) {
+          config.headers['Content-Type'] = 'application/json';
+          config.body = JSON.stringify(obj);
+        }
+
+        submitBtn.disabled = true;
+        const origLabel = submitBtn.textContent;
+        submitBtn.textContent = 'Running…';
+        content.innerHTML = '<span class="text-ink-dim">Loading…</span>';
+        wrap.classList.remove('hidden'); wrap.classList.add('slide-down');
+        meta.textContent = '';
+
+        const t0 = performance.now();
+        try {
+          const response = await fetch(url, config);
+          const ms = Math.round(performance.now() - t0);
+          const ct = response.headers.get('content-type') || '';
+          const statusColor = response.ok ? 'text-ok' : 'text-bad';
+
+          let bodyHtml = '';
+          if (ct.includes('application/json')) {
+            const data = await response.json();
+            lastResponse[`${c}-${e}`] = data;
+            bodyHtml = `<pre class="whitespace-pre-wrap leading-relaxed">${highlightJson(data)}</pre>`;
+          } else if (ct.startsWith('image/')) {
+            const blob = await response.blob();
+            lastResponse[`${c}-${e}`] = '[binary image]';
+            bodyHtml = `<img src="${URL.createObjectURL(blob)}" alt="Response image" class="max-w-full rounded border border-base-line"/>`;
+          } else {
+            const txt = await response.text();
+            lastResponse[`${c}-${e}`] = txt;
+            bodyHtml = `<pre class="whitespace-pre-wrap text-ink">${escapeHtml(txt)}</pre>`;
+          }
+
+          meta.innerHTML = `<span class="${statusColor}">${response.status}</span> · ${ms}ms`;
+          content.innerHTML = bodyHtml;
+
+          pushHistory({ method, path, status: response.status, ok: response.ok, ms, at: Date.now() });
+        } catch (error) {
+          const ms = Math.round(performance.now() - t0);
+          meta.innerHTML = `<span class="text-bad">ERR</span> · ${ms}ms`;
+          content.innerHTML = `<div class="text-bad">Error: ${escapeHtml(error.message)}</div>`;
+          lastResponse[`${c}-${e}`] = error.message;
+          pushHistory({ method, path, status: 'ERR', ok: false, ms, at: Date.now() });
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = origLabel;
+          clearBtn.classList.remove('hidden');
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Search
+      // ─────────────────────────────────────────────────────────────────────
+      let searchInput, noResults, apiListContainer;
+      function applyFilters() {
+        const term = searchInput.value.toLowerCase().trim();
+        let visible = 0;
+        document.querySelectorAll('.category-group').forEach(group => {
+          let groupVisible = 0;
+          group.querySelectorAll('.api-item').forEach(item => {
+            const hay = [
+              item.getAttribute('data-path'), item.getAttribute('data-alias'),
+              item.getAttribute('data-method'), item.getAttribute('data-category')
+            ].join(' ').toLowerCase();
+            const match = hay.includes(term);
+            item.style.display = match ? 'block' : 'none';
+            if (match) { groupVisible++; visible++; }
+          });
+          const count = group.querySelector('[data-role="category-count"]');
+          if (count) count.textContent = `${groupVisible} endpoints`;
+          group.style.display = groupVisible ? 'block' : 'none';
+        });
+        noResults.style.display = visible === 0 ? 'block' : 'none';
+        apiListContainer.style.display = visible === 0 ? 'none' : 'block';
+      }
+      function initSearch() {
+        searchInput = document.getElementById('searchInput');
+        noResults = document.getElementById('noResults');
+        apiListContainer = document.getElementById('apiList');
+        searchInput.addEventListener('input', applyFilters);
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      //  Boot
+      // ─────────────────────────────────────────────────────────────────────
+      document.getElementById('year').textContent = new Date().getFullYear();
+      document.getElementById('clearHistory').addEventListener('click', () => {
+        localStorage.removeItem(LS.history); renderHistory();
+      });
+      // "/" focuses search
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+          ev.preventDefault();
+          document.getElementById('searchInput').focus();
+        }
+      });
+
+      initTheme();
+      initApiKey();
+      renderHistory();
+      loadApiData();
+      pollHealth();
+      setInterval(pollHealth, 15000);
+    </script>
+</body>
+</html>

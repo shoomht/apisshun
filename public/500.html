@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Server Error - ShunKazama API">
+    <meta name="theme-color" content="#0B0E14">
+    <title>500 - Server Error | ShunKazama API</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'display': ['Space Grotesk', '-apple-system', 'Segoe UI', 'Roboto', 'system-ui', 'sans-serif'],
+                        'sans': ['Inter', '-apple-system', 'Segoe UI', 'Roboto', 'system-ui', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'ui-monospace', 'SF Mono', 'Consolas', 'Roboto Mono', 'monospace']
+                    },
+                    colors: {
+                        base: { DEFAULT: '#0B0E14', line: '#1E2330' },
+                        ink: { DEFAULT: '#E4E7EC', dim: '#8C94A6', faint: '#5C6478' },
+                        accent: '#7C8CFF',
+                        bad: '#F2545B'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { display: none !important; }
+
+        body {
+            background-color: #0B0E14;
+            background-image: radial-gradient(ellipse 900px 500px at 50% -10%, rgba(242, 84, 91, 0.08), transparent);
+        }
+
+        .code-glow {
+            color: #F2545B;
+            text-shadow: 0 0 40px rgba(242, 84, 91, 0.30);
+        }
+
+        .pulse { animation: pulse 2s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .pulse { animation: none; }
+        }
+
+        .btn-run {
+            background: #7C8CFF;
+            color: #0B0E14;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.15s ease, transform 0.1s ease;
+        }
+        .btn-run:hover { background: #9AA6FF; }
+        .btn-run:active { transform: translateY(1px); }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid #1E2330;
+            color: #8C94A6;
+            border-radius: 6px;
+            transition: border-color 0.15s ease, color 0.15s ease;
+        }
+        .btn-ghost:hover { border-color: #2A3142; color: #E4E7EC; }
+
+        .error-box {
+            background: rgba(242, 84, 91, 0.08);
+            border: 1px solid rgba(242, 84, 91, 0.25);
+            border-radius: 8px;
+        }
+
+        a:focus-visible, button:focus-visible {
+            outline: 2px solid #7C8CFF;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="text-ink antialiased font-sans min-h-screen">
+    <main class="max-w-2xl mx-auto px-8 py-16 min-h-screen flex items-center justify-center">
+        <div class="text-center w-full">
+            <div class="pulse mb-8">
+                <div class="text-7xl sm:text-8xl font-display font-bold code-glow mb-1">500</div>
+            </div>
+
+            <h1 class="text-xl sm:text-2xl font-display font-semibold text-ink mb-4">Internal server error</h1>
+
+            <p class="text-ink-dim text-sm mb-6 max-w-md mx-auto leading-relaxed">
+                Something went wrong on the server while handling your request. Please try again in a few moments.
+            </p>
+
+            <div class="error-box p-4 mb-8 max-w-md mx-auto text-left">
+                <div class="flex items-start">
+                    <span class="material-icons text-bad mr-2 text-sm mt-0.5">error</span>
+                    <p class="text-ink-dim text-xs leading-relaxed">
+                        <span class="text-ink font-medium">Technical detail:</span> the server hit an unexpected condition and couldn't complete the request.
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center mb-12">
+                <button onclick="window.location.reload()" class="btn-run px-5 py-2.5 text-sm inline-flex items-center justify-center">
+                    <span class="material-icons text-base mr-2">refresh</span>
+                    Reload
+                </button>
+                <a href="/" class="btn-ghost px-5 py-2.5 text-sm inline-flex items-center justify-center">
+                    <span class="material-icons text-base mr-2">home</span>
+                    Go home
+                </a>
+                <button onclick="goBack()" class="btn-ghost px-5 py-2.5 text-sm inline-flex items-center justify-center">
+                    <span class="material-icons text-base mr-2">arrow_back</span>
+                    Go back
+                </button>
+            </div>
+
+            <div class="text-center space-y-1 border-t border-base-line pt-6">
+                <p class="text-ink-faint text-xs font-mono">
+                    © <span id="year"></span> ShunKazama API — All Rights Reserved.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('year').textContent = new Date().getFullYear();
+
+        function goBack() {
+            if (document.referrer) {
+                window.history.back();
+            } else {
+                window.location.href = '/';
+            }
+        }
+    </script>
+</body>
+</html>

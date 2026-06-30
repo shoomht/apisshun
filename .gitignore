@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Generated/runtime data — contains live API keys, don't commit
+src/data/apiKeys.json
+
+npm-debug.log*
+*.log
+
+.DS_Store

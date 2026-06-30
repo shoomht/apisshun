@@ -1,0 +1,57 @@
+# ─── Server ─────────────────────────────────────────────────────────────────
+PORT=3000
+
+# ─── Admin ──────────────────────────────────────────────────────────────────
+# Required for POST /admin/unban, /admin/apikey, /admin/apikey/revoke
+# Use a long random secret (e.g. openssl rand -hex 32)
+ADMIN_KEY=shoshokey
+
+# ─── Rate Limiter ────────────────────────────────────────────────────────────
+# RATE_WINDOW_MS=10000       # sliding window duration in ms (default: 10000)
+# RATE_MAX_REQUESTS=25       # max requests per window per IP (default: 25)
+# BAN_DURATION_MS=0          # ban duration in ms; 0 = permanent (default: 0)
+
+# ─── Response Cache ──────────────────────────────────────────────────────────
+# CACHE_TTL_MS=60000         # default TTL for cached responses (default: 60000)
+# CACHE_MAX_ENTRIES=500      # max cached entries before LRU eviction (default: 500)
+
+# ─── File Uploads ────────────────────────────────────────────────────────────
+# Max accepted upload size in MB for multipart endpoints (e.g. POST
+# /api/tools/upscale). Default: 15. Note: on Vercel, the platform caps request
+# bodies at ~4.5MB regardless of this value.
+# MAX_UPLOAD_MB=15
+
+# ─── Telegram Bot ────────────────────────────────────────────────────────────
+TELEGRAM_BOT_TOKEN=8697886427:AAF1M7qlI4nH_wgIiUDNa0azENVcy7G8iys
+TELEGRAM_CHAT_ID=6755769186
+WEBHOOK_URL=https://arrietty.dpdns.org
+# Notification level for /api/* hits: "errors" (default, only 4xx/5xx),
+# "all" (every hit), or "off" (never). Telegram throttles ~1 msg/sec per chat,
+# so "all" on a busy API will suppress most messages (see below).
+# TELEGRAM_NOTIFY=errors
+# Minimum gap between notifications in ms (default 1100). Messages inside the
+# gap are dropped but counted, and the next message reports how many.
+# TELEGRAM_NOTIFY_MIN_GAP_MS=1100
+
+# ─── Proxy (used by scraper endpoints) ───────────────────────────────────────
+# PROXY_URL=https://your-proxy.example.com/?url=
+
+# ─── Cloudflare AI ───────────────────────────────────────────────────────────
+# CLOUDFLARE_AI_URL=https://your-worker.your-subdomain.workers.dev
+
+# ─── CAPTCHA Solver ──────────────────────────────────────────────────────────
+# SOLVER_API_KEY=your-solver-api-key
+
+# ─── Response Attribution ────────────────────────────────────────────────────
+# API_ATTRIBUTION=Sho
+
+# ─── Persistence (Redis) ─────────────────────────────────────────────────────
+# When set, API keys, bans, and usage are stored in Redis (survives restarts,
+# shared across instances). When unset, falls back to JSON files in src/data/
+# (or /tmp on Vercel). Install with: npm i redis
+# REDIS_URL=redis://default:password@host:6379
+
+# ─── Request Signing (optional HMAC) ─────────────────────────────────────────
+# REQUIRE_SIGNED_REQUESTS=false
+# REQUEST_SIGNING_SECRET=your-long-random-signing-secret
+# SIGNATURE_TOLERANCE_MS=300000
